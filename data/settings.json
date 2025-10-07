@@ -1,0 +1,23 @@
+{
+  "ap_ssid": "LilyGoWatch_AP",
+  "ap_pass": "GingerBreadMan",
+  "time_format": "24h",
+  "date_format": "YYYY-MM-DD",
+  "date_language": "en",
+  "sleep_timeout": "7",
+  "gui_color": "0",
+  "preferred_networks": [
+    { "ssid": "STARNET-Burian", "password": "pilir3453" },
+    { "ssid": "OfficeWiFi", "password": "officepass" },
+    { "ssid": "MobileHotspot", "password": "hotspotpass" }
+  ],
+  "Inrfafed": {
+    "manufacturer": "Samsung",
+    "signals": [
+      "0xE0E040BF",
+      "0xE0E0E01F",
+      "0xE0E0D02F",
+      "0xE0E0F00F"
+    ]
+  }
+}

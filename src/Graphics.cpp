@@ -52,23 +52,33 @@ void LilyGoWatch::UpdateScreen()
 
 void LilyGoWatch::DrawMainFace()
 {
-    lv_obj_set_style_bg_color(lv_scr_act(), lv_color_make(0, 0, 0), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(lv_scr_act(), lv_color_black(), LV_PART_MAIN);
 
+    // --- Top bar: date (left), WiFi dot, battery bar + % (right) ---
     MainElements.date_label = lv_label_create(lv_scr_act());
     lv_label_set_text(MainElements.date_label, GetDateString());
     lv_obj_set_style_text_font(MainElements.date_label, &lv_font_montserrat_14, LV_PART_MAIN);
     lv_obj_set_style_text_color(MainElements.date_label, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
     lv_obj_align(MainElements.date_label, LV_ALIGN_TOP_LEFT, 10, 10);
 
+    // WiFi connected dot — green when connected, dark when not
+    MainElements.wifi_conn_status_label = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(MainElements.wifi_conn_status_label, 8, 8);
+    lv_obj_set_style_radius(MainElements.wifi_conn_status_label, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(MainElements.wifi_conn_status_label,
+        WiFi.status() == WL_CONNECTED ? lv_color_hex(0x00CC00) : lv_color_hex(0x444444), 0);
+    lv_obj_set_style_border_width(MainElements.wifi_conn_status_label, 0, 0);
+    lv_obj_set_style_shadow_width(MainElements.wifi_conn_status_label, 0, 0);
+    lv_obj_clear_flag(MainElements.wifi_conn_status_label, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_align_to(MainElements.wifi_conn_status_label, MainElements.date_label, LV_ALIGN_OUT_RIGHT_MID, 6, 0);
+
     MainElements.battery_bar = lv_bar_create(lv_scr_act());
     lv_obj_set_size(MainElements.battery_bar, 40, 10);
-    lv_obj_align(MainElements.battery_bar, LV_ALIGN_TOP_RIGHT, -48, 12);
+    lv_obj_align(MainElements.battery_bar, LV_ALIGN_TOP_RIGHT, -48, 14);
     lv_bar_set_value(MainElements.battery_bar, getBatteryPercent(), LV_ANIM_OFF);
-
-    if (isCharging())
-        lv_obj_set_style_bg_color(MainElements.battery_bar, lv_color_hex(rgbToHex(0, 200, 0)), LV_PART_INDICATOR);
-    else
-        lv_obj_set_style_bg_color(MainElements.battery_bar, lv_color_hex(HIGHLIGHT_COLORS[json_settings.gui_pref_color]), LV_PART_INDICATOR);
+    lv_obj_set_style_bg_color(MainElements.battery_bar,
+        isCharging() ? lv_color_hex(0x00C800) : lv_color_hex(HIGHLIGHT_COLORS[json_settings.gui_pref_color]),
+        LV_PART_INDICATOR);
 
     MainElements.battery_label = lv_label_create(lv_scr_act());
     lv_label_set_text_fmt(MainElements.battery_label, "%d%%", getBatteryPercent());
@@ -76,51 +86,46 @@ void LilyGoWatch::DrawMainFace()
     lv_obj_set_style_text_color(MainElements.battery_label, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
     lv_obj_align_to(MainElements.battery_label, MainElements.battery_bar, LV_ALIGN_OUT_RIGHT_MID, 3, 0);
 
-    MainElements.wifi_conn_status_label = lv_label_create(lv_scr_act());
-    lv_label_set_text(MainElements.wifi_conn_status_label, WiFi.status() == WL_CONNECTED ? "C" : "");
-    lv_obj_set_style_text_font(MainElements.wifi_conn_status_label, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(MainElements.wifi_conn_status_label, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-    lv_obj_align_to(MainElements.wifi_conn_status_label, MainElements.battery_bar, LV_ALIGN_OUT_RIGHT_MID, -75, 0);
-
+    // --- Time centered on screen ---
     MainElements.time_label = lv_label_create(lv_scr_act());
     lv_label_set_text(MainElements.time_label, GetTimeString());
     lv_obj_set_style_text_font(MainElements.time_label, &lv_font_montserrat_48, LV_PART_MAIN);
     lv_obj_set_style_text_color(MainElements.time_label, lv_color_hex(0xEEEEEE), LV_PART_MAIN);
-    lv_obj_align(MainElements.time_label, LV_ALIGN_RIGHT_MID, -27, -57);
+    lv_obj_align(MainElements.time_label, LV_ALIGN_CENTER, 0, -42);
 
+    // --- Horizontal button row: Bright / WiFi / BT ---
     static const char *btn_labels[] = {"Bright", "WiFi", "BT"};
+    static const int x_offsets[]   = {-68, 0, 68};
     for (int i = 0; i < 3; i++)
     {
         MainElements.buttons[i] = lv_btn_create(lv_scr_act());
-        lv_obj_set_size(MainElements.buttons[i], 55, 55);
-        lv_obj_set_style_radius(MainElements.buttons[i], 28, 0);
-        lv_obj_align(MainElements.buttons[i], LV_ALIGN_TOP_LEFT, 15, 35 + (i * 70));
+        lv_obj_set_size(MainElements.buttons[i], 60, 42);
+        lv_obj_set_style_radius(MainElements.buttons[i], 10, 0);
+        lv_obj_align(MainElements.buttons[i], LV_ALIGN_CENTER, x_offsets[i], 8);
         lv_obj_add_event_cb(MainElements.buttons[i], ButtonHandler, LV_EVENT_CLICKED, NULL);
+        lv_obj_set_user_data(MainElements.buttons[i], (void *)(intptr_t)i);
 
-        lv_obj_set_user_data(MainElements.buttons[i], (void *)i);
+        lv_obj_t *lbl = lv_label_create(MainElements.buttons[i]);
+        lv_label_set_text(lbl, btn_labels[i]);
+        lv_obj_set_style_text_font(lbl, &lv_font_montserrat_14, LV_PART_MAIN);
+        lv_obj_center(lbl);
 
-        lv_obj_t *btn_label = lv_label_create(MainElements.buttons[i]);
-        lv_label_set_text(btn_label, btn_labels[i]);
-        lv_obj_center(btn_label);
-
-        if (i == 2 && MainElements.Bluetooth || i == 1 && Globals.wifi_mode != WIFI_MODE_NULL)
+        if ((i == 2 && MainElements.Bluetooth) || (i == 1 && Globals.wifi_mode != WIFI_MODE_NULL))
         {
             lv_obj_set_style_bg_color(MainElements.buttons[i], lv_color_hex(0x000000), LV_PART_MAIN);
-            lv_obj_set_style_text_color(btn_label, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+            lv_obj_set_style_text_color(lbl, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
         }
         else if (i == 0)
         {
-            uint16_t rgb = 255 - DisplayBrightness * 2.55;
+            uint16_t rgb = 255 - (uint16_t)(DisplayBrightness * 2.55f);
             lv_obj_set_style_bg_color(MainElements.buttons[i], lv_color_make(rgb, rgb, rgb), LV_PART_MAIN);
-            if (DisplayBrightness <= 50)
-                lv_obj_set_style_text_color(btn_label, lv_color_hex(0x000000), LV_PART_MAIN);
-            else
-                lv_obj_set_style_text_color(btn_label, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+            lv_obj_set_style_text_color(lbl,
+                DisplayBrightness <= 50 ? lv_color_hex(0x000000) : lv_color_hex(0xFFFFFF), LV_PART_MAIN);
         }
         else
         {
             lv_obj_set_style_bg_color(MainElements.buttons[i], lv_color_hex(0xCECECE), LV_PART_MAIN);
-            lv_obj_set_style_text_color(btn_label, lv_color_hex(0x000000), LV_PART_MAIN);
+            lv_obj_set_style_text_color(lbl, lv_color_hex(0x000000), LV_PART_MAIN);
         }
 
         lv_obj_set_style_outline_color(MainElements.buttons[i], lv_color_hex(HIGHLIGHT_COLORS[json_settings.gui_pref_color]), LV_PART_MAIN);
@@ -128,55 +133,36 @@ void LilyGoWatch::DrawMainFace()
         lv_obj_set_style_outline_pad(MainElements.buttons[i], 0, LV_PART_MAIN);
     }
 
-    MainElements.site_status_label = lv_label_create(lv_scr_act());
-    lv_label_set_text(MainElements.site_status_label, "Site Status: ");
-    lv_obj_set_style_text_font(MainElements.site_status_label, &lv_font_montserrat_18, LV_PART_MAIN);
-    lv_obj_set_style_text_color(MainElements.site_status_label, lv_color_hex(0xEEEEEE), LV_PART_MAIN);
-    lv_obj_align(MainElements.site_status_label, LV_ALIGN_RIGHT_MID, -40, 0);
-
-    MainElements.dot = lv_obj_create(lv_scr_act());
-    lv_obj_set_size(MainElements.dot, 13, 13);
-
-    int dotColor = 0xFF0000;
-
-    if (Globals.website_on)
-        dotColor = 0x00FF00;
-
-    lv_obj_set_style_bg_color(MainElements.dot, lv_color_hex(dotColor), LV_PART_MAIN);
-
-    lv_obj_set_style_arc_color(MainElements.dot, lv_color_hex(dotColor), LV_PART_MAIN);
-
-    lv_obj_set_style_outline_width(MainElements.dot, 0, LV_PART_MAIN);
-    lv_obj_set_style_outline_opa(MainElements.dot, LV_OPA_TRANSP, LV_PART_MAIN);
-
-    lv_obj_set_style_border_width(MainElements.dot, 0, LV_PART_MAIN);
-    lv_obj_set_style_border_opa(MainElements.dot, LV_OPA_TRANSP, LV_PART_MAIN);
-
-    lv_obj_set_style_shadow_width(MainElements.dot, 0, LV_PART_MAIN);
-    lv_obj_set_style_shadow_opa(MainElements.dot, LV_OPA_TRANSP, LV_PART_MAIN);
-
-    lv_obj_align(MainElements.dot, LV_ALIGN_RIGHT_MID, -25, 1);
-
+    // --- Site button + status dot ---
     MainElements.site_button = lv_btn_create(lv_scr_act());
-    lv_obj_set_size(MainElements.site_button, 120, 45);
-    lv_obj_set_style_radius(MainElements.site_button, 20, 0);
-    lv_obj_align(MainElements.site_button, LV_ALIGN_RIGHT_MID, -28, 52);
+    lv_obj_set_size(MainElements.site_button, 130, 32);
+    lv_obj_set_style_radius(MainElements.site_button, 10, 0);
+    lv_obj_align(MainElements.site_button, LV_ALIGN_BOTTOM_LEFT, 38, -42);
     lv_obj_add_event_cb(MainElements.site_button, ButtonHandler, LV_EVENT_CLICKED, NULL);
-
-    lv_obj_t *btn_label = lv_label_create(MainElements.site_button);
-    if (Globals.website_on)
-        lv_label_set_text(btn_label, "Turn Site Off");
-    else
-        lv_label_set_text(btn_label, "Turn Site On");
-
-    lv_obj_center(btn_label);
     lv_obj_set_user_data(MainElements.site_button, (void *)3);
 
+    lv_obj_t *site_lbl = lv_label_create(MainElements.site_button);
+    lv_label_set_text(site_lbl, Globals.website_on ? "Turn Site Off" : "Turn Site On");
+    lv_obj_set_style_text_font(site_lbl, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_center(site_lbl);
+
     lv_obj_set_style_bg_color(MainElements.site_button, lv_color_hex(0x000000), LV_PART_MAIN);
-    lv_obj_set_style_text_color(btn_label, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+    lv_obj_set_style_text_color(site_lbl, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
     lv_obj_set_style_outline_color(MainElements.site_button, lv_color_hex(HIGHLIGHT_COLORS[json_settings.gui_pref_color]), LV_PART_MAIN);
     lv_obj_set_style_outline_width(MainElements.site_button, 2, LV_PART_MAIN);
     lv_obj_set_style_outline_pad(MainElements.site_button, 0, LV_PART_MAIN);
+
+    // Site status dot (red/green) positioned to the left of the button
+    MainElements.dot = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(MainElements.dot, 10, 10);
+    lv_obj_set_style_radius(MainElements.dot, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(MainElements.dot, lv_color_hex(Globals.website_on ? 0x00FF00 : 0xFF0000), 0);
+    lv_obj_set_style_border_width(MainElements.dot, 0, 0);
+    lv_obj_set_style_shadow_width(MainElements.dot, 0, 0);
+    lv_obj_clear_flag(MainElements.dot, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_align_to(MainElements.dot, MainElements.site_button, LV_ALIGN_OUT_LEFT_MID, -6, 0);
+
+    DrawFaceIndicator();
 }
 
 void LilyGoWatch::DrawWifiFace()
@@ -264,6 +250,8 @@ void LilyGoWatch::DrawWifiFace()
 
     lv_obj_set_style_text_color(WifiElements.ip_label, lv_color_white(), 0);
     lv_obj_align(WifiElements.ip_label, LV_ALIGN_BOTTOM_MID, 0, 9);
+
+    DrawFaceIndicator();
 }
 
 void LilyGoWatch::AddNetworkToList(const char *ssid, int signal_strength, bool is_secured)
@@ -302,7 +290,7 @@ void LilyGoWatch::AddNetworkToList(const char *ssid, int signal_strength, bool i
     if (is_secured)
     {
         lv_obj_t *lock_label = lv_label_create(cont);
-        lv_label_set_text(lock_label, LV_SYMBOL_CLOSE);
+        lv_label_set_text(lock_label, LV_SYMBOL_EYE_CLOSE);
     }
 }
 
@@ -329,14 +317,26 @@ void LilyGoWatch::DrawAlarmWatchface()
     lv_label_set_text(AlarmElements.set_alarm_label, "Set Alarm");
     lv_obj_center(AlarmElements.set_alarm_label);
 
+    // Column headers H / M / S
+    static const char *col_headers[] = {"H", "M", "S"};
+    for (uint8_t col = 0; col < 3; col++)
+    {
+        lv_obj_t *hdr = lv_label_create(AlarmElements.main_cont);
+        lv_label_set_text(hdr, col_headers[col]);
+        lv_obj_set_style_text_font(hdr, &lv_font_montserrat_16, 0);
+        lv_obj_set_style_text_color(hdr, lv_color_hex(HIGHLIGHT_COLORS[json_settings.gui_pref_color]), 0);
+        lv_obj_set_pos(hdr, col * 80 + 32, 4);
+        lv_obj_clear_flag(hdr, LV_OBJ_FLAG_CLICKABLE);
+    }
+
     static lv_obj_t *number_labels[3][60];
 
     for (uint8_t col = 0; col < 3; col++)
     {
         AlarmElements.row_cont[col] = lv_obj_create(AlarmElements.main_cont);
         lv_obj_remove_style_all(AlarmElements.row_cont[col]);
-        lv_obj_set_size(AlarmElements.row_cont[col], 80, 180);
-        lv_obj_set_pos(AlarmElements.row_cont[col], col * 80, 0);
+        lv_obj_set_size(AlarmElements.row_cont[col], 80, 158);
+        lv_obj_set_pos(AlarmElements.row_cont[col], col * 80, 22);
 
         lv_obj_set_style_bg_opa(AlarmElements.row_cont[col], LV_OPA_0, 0);
         lv_obj_set_style_pad_all(AlarmElements.row_cont[col], 0, 0);
@@ -410,6 +410,8 @@ void LilyGoWatch::DrawAlarmWatchface()
 
         lv_obj_scroll_to_y(AlarmElements.row_cont[col], (max_val / 2) * 40, LV_ANIM_ON);
     }
+
+    DrawFaceIndicator();
 }
 
 void LilyGoWatch::DrawAudioFace()
@@ -475,6 +477,8 @@ void LilyGoWatch::DrawAudioFace()
     lv_label_set_text(play_label, "PLAY");
     lv_obj_set_style_text_font(play_label, &lv_font_montserrat_14, LV_PART_MAIN);
     lv_obj_center(play_label);
+
+    DrawFaceIndicator();
 }
 
 void LilyGoWatch::DrawIRWatchface()
@@ -564,6 +568,8 @@ void LilyGoWatch::DrawIRWatchface()
     lv_obj_set_style_bg_color(center_circle, lv_color_hex(HIGHLIGHT_COLORS[json_settings.gui_pref_color]), 0);
     lv_obj_set_style_border_width(center_circle, 0, 0);
     lv_obj_clear_flag(center_circle, LV_OBJ_FLAG_CLICKABLE);
+
+    DrawFaceIndicator();
 }
 
 void LilyGoWatch::DrawSettingsFace()
@@ -698,6 +704,34 @@ void LilyGoWatch::DrawSettingsFace()
     // --- Row 4: Language ---
     lv_obj_t *row4 = make_row(SettingsElements.container, "Language", 184);
     SettingsElements.datelang_label = make_val_btn(row4, json_settings.date_language == "en" ? "EN" : "CZ", 18);
+
+    DrawFaceIndicator();
+}
+
+void LilyGoWatch::DrawFaceIndicator()
+{
+    const int dot_size = 8;
+    const int gap      = 6;
+    const int count    = MAX_FACE - MIN_FACE + 1;
+    const int total_w  = count * dot_size + (count - 1) * gap;
+    const int start_x  = (LV_HOR_RES - total_w) / 2;
+
+    for (int i = MIN_FACE; i <= MAX_FACE; i++)
+    {
+        lv_obj_t *dot = lv_obj_create(lv_scr_act());
+        lv_obj_set_size(dot, dot_size, dot_size);
+        lv_obj_set_style_radius(dot, LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_style_border_width(dot, 0, 0);
+        lv_obj_set_style_shadow_width(dot, 0, 0);
+        lv_obj_set_style_pad_all(dot, 0, 0);
+        lv_obj_set_style_bg_color(dot,
+            (i == current_menu)
+                ? lv_color_hex(HIGHLIGHT_COLORS[json_settings.gui_pref_color])
+                : lv_color_hex(0x444444),
+            0);
+        lv_obj_set_pos(dot, start_x + (i - MIN_FACE) * (dot_size + gap), 228);
+        lv_obj_clear_flag(dot, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
+    }
 }
 
 void LilyGoWatch::SetDisplayBrightnessPercent(uint8_t value)

@@ -1,3 +1,10 @@
+# ⌚ Smartwatch OS – ESP32-S3
+
+![Language](https://img.shields.io/badge/language-C%2FC%2B%2B-blue)
+![Platform](https://img.shields.io/badge/platform-ESP32--S3-green)
+![Build](https://img.shields.io/badge/build-PlatformIO-orange)
+![Thesis](https://img.shields.io/badge/type-Bachelor's%20Thesis-purple)
+
 # Bachelor's Thesis – Smartwatch Software Interface using ESP32
 
 This repository contains the source code for the bachelor's thesis:

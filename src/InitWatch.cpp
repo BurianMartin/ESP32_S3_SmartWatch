@@ -120,6 +120,55 @@ bool LilyGoWatch::Init(Stream *stream)
     return true;
 }
 
+bool LilyGoWatch::FastInit(Stream *s)
+{
+    stream = s;
+
+    // PMU first — controls all power rails
+    Wire.begin(BOARD_I2C_SDA, BOARD_I2C_SCL);
+    if (!PowerComponents())
+        return false;
+
+    // LEDC state is lost after deep sleep — must reconfigure
+    ledcSetup(LEDC_BACKLIGHT_CHANNEL, LEDC_BACKLIGHT_FREQ, LEDC_BACKLIGHT_BIT_WIDTH);
+    ledcAttachPin(BOARD_TFT_BL, LEDC_BACKLIGHT_CHANNEL);
+
+    // TFT controller loses state during deep sleep
+    TFT_eSPI::init();
+    setRotation(2);
+    setTextDatum(MC_DATUM);
+    setTextFont(2);
+
+    // Load settings before first draw
+    if (LittleFS.begin())
+        LoadSettingsFromJson(false);
+
+    // Touch controller
+    Wire1.begin(BOARD_TOUCH_SDA, BOARD_TOUCH_SCL);
+    if (TouchDrvFT6X36::begin(Wire1, FT6X36_SLAVE_ADDRESS, BOARD_TOUCH_SDA, BOARD_TOUCH_SCL))
+        interruptTrigger();
+
+    // RTC — needed for correct time display immediately
+    if (SensorPCF8563::init(Wire))
+        hwClockRead();
+
+#ifdef ACCELEROMETER
+    // PowerComponents() briefly disables/re-enables BLDO1, which power-cycles
+    // the BMA423 and resets all feature config. Full re-init is required.
+    SetUpAccelerometer();
+#endif
+
+    return true;
+}
+
+void LilyGoWatch::RestoreFromDeepSleep(uint8_t brightness, int16_t menu)
+{
+    DisplayBrightness = brightness;
+    current_menu      = menu;
+    RedrawScreen      = true;
+    SetDisplayBrightnessPercent(brightness);
+}
+
 void LilyGoWatch::BeginTemp()
 {
     temp_sensor_config_t temp_sensor = {

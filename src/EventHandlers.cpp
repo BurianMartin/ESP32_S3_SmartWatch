@@ -188,6 +188,90 @@ void LilyGoWatch::ButtonHandler(lv_event_t *e)
         }
         break;
 
+    // --- Settings face controls ---
+
+    case 13: // Color: cycle through GuiColor values
+    {
+        if (xSemaphoreTake(Watch.json_settings.Json_Acces_Mutex, portMAX_DELAY))
+        {
+            Watch.json_settings.gui_pref_color =
+                GuiColor((Watch.json_settings.gui_pref_color + 1) % 5);
+            xSemaphoreGive(Watch.json_settings.Json_Acces_Mutex);
+        }
+        Watch.SaveSettingsToJson();
+        Watch.RedrawScreen = true;
+        break;
+    }
+
+    case 14: // Time format: toggle 24h ↔ 12h
+    {
+        if (xSemaphoreTake(Watch.json_settings.Json_Acces_Mutex, portMAX_DELAY))
+        {
+            Watch.json_settings.time_format =
+                (Watch.json_settings.time_format == "24h") ? "12h" : "24h";
+            xSemaphoreGive(Watch.json_settings.Json_Acces_Mutex);
+        }
+        Watch.SaveSettingsToJson();
+        Watch.RedrawScreen = true;
+        break;
+    }
+
+    case 15: // Sleep timeout: decrease
+    {
+        static const int sleep_steps[] = {7, 10, 20, 30, 60};
+        static const int step_count = 5;
+        int cur = Watch.PowerManage.sleep_timeout;
+        int idx = 0;
+        for (int i = 0; i < step_count; i++)
+            if (sleep_steps[i] == cur) { idx = i; break; }
+        int next = sleep_steps[(idx > 0) ? idx - 1 : 0];
+        Watch.PowerManage.SetSleepTimeout(next);
+        Watch.SaveSettingsToJson();
+        Watch.RedrawScreen = true;
+        break;
+    }
+
+    case 16: // Sleep timeout: increase
+    {
+        static const int sleep_steps[] = {7, 10, 20, 30, 60};
+        static const int step_count = 5;
+        int cur = Watch.PowerManage.sleep_timeout;
+        int idx = step_count - 1;
+        for (int i = 0; i < step_count; i++)
+            if (sleep_steps[i] == cur) { idx = i; break; }
+        int next = sleep_steps[(idx < step_count - 1) ? idx + 1 : step_count - 1];
+        Watch.PowerManage.SetSleepTimeout(next);
+        Watch.SaveSettingsToJson();
+        Watch.RedrawScreen = true;
+        break;
+    }
+
+    case 17: // Date format: cycle DD-MM-YYYY ↔ YYYY-MM-DD
+    {
+        if (xSemaphoreTake(Watch.json_settings.Json_Acces_Mutex, portMAX_DELAY))
+        {
+            Watch.json_settings.date_format =
+                (Watch.json_settings.date_format == "DD-MM-YYYY") ? "YYYY-MM-DD" : "DD-MM-YYYY";
+            xSemaphoreGive(Watch.json_settings.Json_Acces_Mutex);
+        }
+        Watch.SaveSettingsToJson();
+        Watch.RedrawScreen = true;
+        break;
+    }
+
+    case 18: // Date language: toggle EN ↔ CZ
+    {
+        if (xSemaphoreTake(Watch.json_settings.Json_Acces_Mutex, portMAX_DELAY))
+        {
+            Watch.json_settings.date_language =
+                (Watch.json_settings.date_language == "en") ? "cz" : "en";
+            xSemaphoreGive(Watch.json_settings.Json_Acces_Mutex);
+        }
+        Watch.SaveSettingsToJson();
+        Watch.RedrawScreen = true;
+        break;
+    }
+
     default:
         Serial.println("Button Handling missing");
         break;

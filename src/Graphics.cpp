@@ -40,6 +40,10 @@ void LilyGoWatch::UpdateScreen()
             DrawAudioFace();
             break;
 
+        case SETTINGS_FACE:
+            DrawSettingsFace();
+            break;
+
         default:
             break;
         }
@@ -560,6 +564,140 @@ void LilyGoWatch::DrawIRWatchface()
     lv_obj_set_style_bg_color(center_circle, lv_color_hex(HIGHLIGHT_COLORS[json_settings.gui_pref_color]), 0);
     lv_obj_set_style_border_width(center_circle, 0, 0);
     lv_obj_clear_flag(center_circle, LV_OBJ_FLAG_CLICKABLE);
+}
+
+void LilyGoWatch::DrawSettingsFace()
+{
+    static const char *color_names[] = {"Purple", "Yellow", "Red", "Green", "Blue"};
+    static const uint32_t sleep_steps[] = {7, 10, 20, 30, 60};
+    static const uint8_t sleep_step_count = 5;
+
+    SettingsElements.container = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(SettingsElements.container, LV_HOR_RES, LV_VER_RES);
+    lv_obj_set_style_bg_color(SettingsElements.container, lv_color_black(), 0);
+    lv_obj_set_style_bg_opa(SettingsElements.container, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_color(SettingsElements.container, lv_color_hex(HIGHLIGHT_COLORS[json_settings.gui_pref_color]), 0);
+    lv_obj_set_style_pad_all(SettingsElements.container, 8, 0);
+    lv_obj_set_scroll_dir(SettingsElements.container, LV_DIR_VER);
+
+    // Title
+    lv_obj_t *title = lv_label_create(SettingsElements.container);
+    lv_label_set_text(title, "SETTINGS");
+    lv_obj_set_style_text_font(title, &lv_font_montserrat_18, 0);
+    lv_obj_set_style_text_color(title, lv_color_hex(HIGHLIGHT_COLORS[json_settings.gui_pref_color]), 0);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 2);
+
+    // Helper: creates a settings row — returns the row container
+    auto make_row = [&](lv_obj_t *parent, const char *label_text, int y_offset) -> lv_obj_t *
+    {
+        lv_obj_t *row = lv_obj_create(parent);
+        lv_obj_set_size(row, 220, 40);
+        lv_obj_set_style_bg_color(row, lv_color_hex(0x111111), 0);
+        lv_obj_set_style_bg_opa(row, LV_OPA_COVER, 0);
+        lv_obj_set_style_border_width(row, 0, 0);
+        lv_obj_set_style_pad_all(row, 4, 0);
+        lv_obj_set_style_radius(row, 6, 0);
+        lv_obj_align(row, LV_ALIGN_TOP_MID, 0, 30 + y_offset);
+        lv_obj_set_scroll_dir(row, LV_DIR_NONE);
+        lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+
+        lv_obj_t *lbl = lv_label_create(row);
+        lv_label_set_text(lbl, label_text);
+        lv_obj_set_style_text_font(lbl, &lv_font_montserrat_14, 0);
+        lv_obj_set_style_text_color(lbl, lv_color_hex(0xAAAAAA), 0);
+        lv_obj_align(lbl, LV_ALIGN_LEFT_MID, 4, 0);
+        return row;
+    };
+
+    // Helper: right-side value button
+    auto make_val_btn = [&](lv_obj_t *row, const char *text, int btn_id) -> lv_obj_t *
+    {
+        lv_obj_t *btn = lv_btn_create(row);
+        lv_obj_set_size(btn, 100, 32);
+        lv_obj_align(btn, LV_ALIGN_RIGHT_MID, -2, 0);
+        lv_obj_set_style_bg_color(btn, lv_color_hex(0x222222), 0);
+        lv_obj_set_style_bg_color(btn, lv_color_hex(HIGHLIGHT_COLORS[json_settings.gui_pref_color]), LV_STATE_PRESSED);
+        lv_obj_set_style_radius(btn, 6, 0);
+        lv_obj_set_style_border_color(btn, lv_color_hex(HIGHLIGHT_COLORS[json_settings.gui_pref_color]), 0);
+        lv_obj_set_style_border_width(btn, 1, 0);
+        lv_obj_set_style_shadow_width(btn, 0, 0);
+        lv_obj_set_user_data(btn, (void *)(intptr_t)btn_id);
+        lv_obj_add_event_cb(btn, ButtonHandler, LV_EVENT_CLICKED, NULL);
+
+        lv_obj_t *lbl = lv_label_create(btn);
+        lv_label_set_text(lbl, text);
+        lv_obj_set_style_text_font(lbl, &lv_font_montserrat_14, 0);
+        lv_obj_set_style_text_color(lbl, lv_color_hex(0xFFFFFF), 0);
+        lv_obj_center(lbl);
+        return lbl;
+    };
+
+    // --- Row 0: Color ---
+    lv_obj_t *row0 = make_row(SettingsElements.container, "Color", 0);
+
+    SettingsElements.color_dot = lv_obj_create(row0);
+    lv_obj_set_size(SettingsElements.color_dot, 14, 14);
+    lv_obj_set_style_radius(SettingsElements.color_dot, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(SettingsElements.color_dot, lv_color_hex(HIGHLIGHT_COLORS[json_settings.gui_pref_color]), 0);
+    lv_obj_set_style_border_width(SettingsElements.color_dot, 0, 0);
+    lv_obj_set_style_shadow_width(SettingsElements.color_dot, 0, 0);
+    lv_obj_align(SettingsElements.color_dot, LV_ALIGN_RIGHT_MID, -110, 0);
+    lv_obj_clear_flag(SettingsElements.color_dot, LV_OBJ_FLAG_CLICKABLE);
+
+    SettingsElements.color_label = make_val_btn(row0, color_names[json_settings.gui_pref_color], 13);
+
+    // --- Row 1: Time format ---
+    lv_obj_t *row1 = make_row(SettingsElements.container, "Time", 46);
+    SettingsElements.timeformat_label = make_val_btn(row1, json_settings.time_format.c_str(), 14);
+
+    // --- Row 2: Sleep timeout ---
+    lv_obj_t *row2 = make_row(SettingsElements.container, "Sleep", 92);
+
+    lv_obj_t *dec_btn = lv_btn_create(row2);
+    lv_obj_set_size(dec_btn, 30, 32);
+    lv_obj_align(dec_btn, LV_ALIGN_RIGHT_MID, -72, 0);
+    lv_obj_set_style_bg_color(dec_btn, lv_color_hex(0x222222), 0);
+    lv_obj_set_style_radius(dec_btn, 6, 0);
+    lv_obj_set_style_border_color(dec_btn, lv_color_hex(HIGHLIGHT_COLORS[json_settings.gui_pref_color]), 0);
+    lv_obj_set_style_border_width(dec_btn, 1, 0);
+    lv_obj_set_style_shadow_width(dec_btn, 0, 0);
+    lv_obj_set_user_data(dec_btn, (void *)15);
+    lv_obj_add_event_cb(dec_btn, ButtonHandler, LV_EVENT_CLICKED, NULL);
+    lv_obj_t *dec_lbl = lv_label_create(dec_btn);
+    lv_label_set_text(dec_lbl, "-");
+    lv_obj_set_style_text_color(dec_lbl, lv_color_hex(0xFFFFFF), 0);
+    lv_obj_center(dec_lbl);
+
+    SettingsElements.sleep_value_label = lv_label_create(row2);
+    char sleep_buf[8];
+    snprintf(sleep_buf, sizeof(sleep_buf), "%ds", PowerManage.sleep_timeout);
+    lv_label_set_text(SettingsElements.sleep_value_label, sleep_buf);
+    lv_obj_set_style_text_font(SettingsElements.sleep_value_label, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_color(SettingsElements.sleep_value_label, lv_color_hex(0xFFFFFF), 0);
+    lv_obj_align(SettingsElements.sleep_value_label, LV_ALIGN_RIGHT_MID, -38, 0);
+
+    lv_obj_t *inc_btn = lv_btn_create(row2);
+    lv_obj_set_size(inc_btn, 30, 32);
+    lv_obj_align(inc_btn, LV_ALIGN_RIGHT_MID, -2, 0);
+    lv_obj_set_style_bg_color(inc_btn, lv_color_hex(0x222222), 0);
+    lv_obj_set_style_radius(inc_btn, 6, 0);
+    lv_obj_set_style_border_color(inc_btn, lv_color_hex(HIGHLIGHT_COLORS[json_settings.gui_pref_color]), 0);
+    lv_obj_set_style_border_width(inc_btn, 1, 0);
+    lv_obj_set_style_shadow_width(inc_btn, 0, 0);
+    lv_obj_set_user_data(inc_btn, (void *)16);
+    lv_obj_add_event_cb(inc_btn, ButtonHandler, LV_EVENT_CLICKED, NULL);
+    lv_obj_t *inc_lbl = lv_label_create(inc_btn);
+    lv_label_set_text(inc_lbl, "+");
+    lv_obj_set_style_text_color(inc_lbl, lv_color_hex(0xFFFFFF), 0);
+    lv_obj_center(inc_lbl);
+
+    // --- Row 3: Date format ---
+    lv_obj_t *row3 = make_row(SettingsElements.container, "Date fmt", 138);
+    SettingsElements.dateformat_label = make_val_btn(row3, json_settings.date_format.c_str(), 17);
+
+    // --- Row 4: Language ---
+    lv_obj_t *row4 = make_row(SettingsElements.container, "Language", 184);
+    SettingsElements.datelang_label = make_val_btn(row4, json_settings.date_language == "en" ? "EN" : "CZ", 18);
 }
 
 void LilyGoWatch::SetDisplayBrightnessPercent(uint8_t value)

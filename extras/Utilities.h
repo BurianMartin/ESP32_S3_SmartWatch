@@ -5,7 +5,7 @@
 
 #define LVGL_USE 1
 #undef DEBUG
-#undef ACCELEROMETER
+#define ACCELEROMETER
 #define INTRO_DELAY 0
 
 #define BOARD_TFT_WIDTH (240)
@@ -146,12 +146,13 @@ const int HIGHLIGHT_COLORS[] = {
     0x2D1FED}; // Blue
 
 #define MIN_FACE 0
-#define MAX_FACE 4
+#define MAX_FACE 5
 
 #define IR_FACE 0
 #define WIFI_FACE 1
 #define MAIN_FACE 2
 #define SPEAKER_FACE 3
 #define ALARM_FACE 4
+#define SETTINGS_FACE 5
 
 #define DEFAULT_RECORD_FILENAME "/rec.wav"

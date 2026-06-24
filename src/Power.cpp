@@ -1,4 +1,5 @@
 #include "LilyGoWatch.h"
+#include "RtcState.h"
 
 Power::Power()
 {
@@ -19,8 +20,7 @@ void Power::HandleSleepActions(uint8_t setBrightness, bool enterLightSleep)
 void Power::WakeUpFromSleep(uint8_t setBrightness)
 {
 #ifdef ACCELEROMETER
-    Watch.sensor.getIrqStatus();
-    Watch.sensor.readIrqStatus();
+    Watch.ReadAccelIrqStatus();
 #endif
 
     Watch.SetDisplayBrightnessPercent(setBrightness);
@@ -51,13 +51,28 @@ void Power::GoToSleep(bool enterLightSleep)
     if (xSemaphoreTake(Power_Acces_Mutex, portMAX_DELAY))
     {
         ShouldWakeUp = false;
-        Asleep = true;
-        idle_time = 0;
+        Asleep       = true;
+        idle_time    = 0;
         xSemaphoreGive(Power_Acces_Mutex);
     }
 
     if (enterLightSleep)
+    {
+        // WiFi is OFF — deep sleep for maximum battery savings (~100 µA).
+        // Save volatile state to RTC memory before the CPU resets.
+        rtc_display_brightness = Watch.GetDisplayBrightness();
+        rtc_current_menu       = Watch.GetCurrentMenu();
+        rtc_deep_sleep_wake    = true;
+        Serial.flush();
+        esp_deep_sleep_start();
+        // Does not return — CPU resets and setup() runs via FastInit path.
+    }
+    else
+    {
+        // WiFi is ON — light sleep keeps the WiFi stack alive.
+        // CPU resumes here after wakeup; no reinit needed.
         esp_light_sleep_start();
+    }
 }
 
 void Power::SetAlarm(uint8_t hours, uint8_t minutes, uint8_t seconds)

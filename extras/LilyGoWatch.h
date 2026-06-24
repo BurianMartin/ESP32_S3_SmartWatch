@@ -229,6 +229,17 @@ struct JsonSettings
     std::string date_language;
 };
 
+struct SettingsWatchfaceElements
+{
+    lv_obj_t *container;
+    lv_obj_t *color_dot;
+    lv_obj_t *color_label;
+    lv_obj_t *timeformat_label;
+    lv_obj_t *sleep_value_label;
+    lv_obj_t *dateformat_label;
+    lv_obj_t *datelang_label;
+};
+
 class LilyGoWatch : public TFT_eSPI,
                     public XPowersAXP2101,
                     public SensorDRV2605,
@@ -264,6 +275,7 @@ private:
     MainWatchfaceElements MainElements;
     WifiWatchfaceElements WifiElements;
     AlarmWatchfaceElements AlarmElements;
+    SettingsWatchfaceElements SettingsElements;
 
     int16_t current_menu = MAIN_FACE;
 
@@ -278,6 +290,7 @@ private:
     void DrawAudioFace();
     void DrawIRWatchface();
     void DrawAlarmWatchface();
+    void DrawSettingsFace();
 
     void ShowNormalState();
     void ShowPlayingState();
@@ -329,6 +342,15 @@ public:
 
     bool PowerComponents();
     bool Init(Stream *stream);
+    bool FastInit(Stream *stream);
+    void RestoreFromDeepSleep(uint8_t brightness, int16_t menu);
+
+    uint8_t GetDisplayBrightness() const { return DisplayBrightness; }
+    int16_t GetCurrentMenu()       const { return current_menu; }
+
+#ifdef ACCELEROMETER
+    void ReadAccelIrqStatus() { sensor.getIrqStatus(); sensor.readIrqStatus(); }
+#endif
 
     WiFiDriver *getWifiDriverRef();
 

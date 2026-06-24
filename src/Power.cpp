@@ -70,8 +70,18 @@ void Power::GoToSleep(bool enterLightSleep)
     else
     {
         // WiFi is ON — light sleep keeps the WiFi stack alive.
-        // CPU resumes here after wakeup; no reinit needed.
-        esp_light_sleep_start();
+        // Loop until a non-spurious wakeup: ignore BMA423 interrupts that
+        // are not tilt (any-motion IRQ is disabled but wakeup IRQ is broad).
+        while (true)
+        {
+            esp_light_sleep_start();
+#ifdef ACCELEROMETER
+            if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1 &&
+                !Watch.ReadAccelIrqStatus())
+                continue;
+#endif
+            break;
+        }
     }
 }
 

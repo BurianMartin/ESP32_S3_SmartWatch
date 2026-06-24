@@ -52,14 +52,14 @@ const char *cz_months[12] = {"Led",
 
 void ScanDevicePort(TwoWire *port, Stream *stream)
 {
-    uint8_t err, addr;
     int nDevices = 0;
     for (uint8_t addr = 1; addr < 127; addr++)
     {
-        Wire.beginTransmission(addr);
-        if (Wire.endTransmission() == 0)
+        port->beginTransmission(addr);
+        if (port->endTransmission() == 0)
         {
-            stream->printf("Device found at 0x%02X\n", addr);
+            if (stream) stream->printf("Device found at 0x%02X\n", addr);
+            nDevices++;
         }
     }
 

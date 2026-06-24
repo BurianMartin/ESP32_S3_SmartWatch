@@ -195,12 +195,14 @@ void WiFiDriver::ScanTask(void *param)
                 for (const auto &p : preferred_found)
                 {
                     Serial.printf("Trying to connect to %s with password '%s'\n", self->data.preferred_WiFis[p.first].first.c_str(), self->data.preferred_WiFis[p.first].second.c_str());
+
+                    xEventGroupClearBits(self->data.wifi_events, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT);
                     WiFi.begin(self->data.preferred_WiFis[p.first].first.c_str(), self->data.preferred_WiFis[p.first].second.c_str());
 
                     EventBits_t bits = xEventGroupWaitBits(
                         Watch.getWifiDriverRef()->data.wifi_events,
                         WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
-                        pdFALSE,
+                        pdTRUE,
                         pdFALSE,
                         10000 / portTICK_PERIOD_MS);
 

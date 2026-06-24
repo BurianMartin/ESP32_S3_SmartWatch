@@ -3,12 +3,8 @@
 void LilyGoWatch::InterruptTestFn()
 {
     Serial.println("Interrupt Worked!");
-    if (xSemaphoreTake(Watch.PowerManage.Power_Acces_Mutex, portMAX_DELAY))
-    {
-        Watch.PowerManage.ShouldWakeUp = true;
-        Watch.PowerManage.idle_time = 0;
-        xSemaphoreGive(Watch.PowerManage.Power_Acces_Mutex);
-    }
+    Watch.PowerManage.ShouldWakeUp = true;
+    Watch.PowerManage.idle_time = 0;
 }
 
 void LilyGoWatch::UpdateWatchScreen()
@@ -198,7 +194,7 @@ void LilyGoWatch::ButtonHandler(lv_event_t *e)
     }
 }
 
-void LilyGoWatch::GeneralTouchHandler()
+void IRAM_ATTR LilyGoWatch::GeneralTouchHandler()
 {
     if (!Watch.PowerManage.Asleep)
         Watch.PowerManage.idle_time = 0;
@@ -206,7 +202,10 @@ void LilyGoWatch::GeneralTouchHandler()
     {
         Watch.PowerManage.double_touch++;
         if (Watch.PowerManage.double_touch >= 2)
-            Watch.PowerManage.ShouldWakeUp = true, Watch.PowerManage.double_touch = 0;
+        {
+            Watch.PowerManage.ShouldWakeUp = true;
+            Watch.PowerManage.double_touch = 0;
+        }
     }
 }
 
@@ -257,8 +256,8 @@ void LilyGoWatch::scroll_end_event_h(lv_event_t *e)
     int index = (y + 20) / 40;
     if (index < 0)
         index = 0;
-    else if (index > 30)
-        index = 30;
+    else if (index > 23)
+        index = 23;
     lv_obj_scroll_to_y(cont, index * 40, LV_ANIM_ON);
 }
 

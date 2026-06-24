@@ -20,9 +20,11 @@ void LilyGoWatch::GoToSleep()
     PowerManage.GoToSleep((Watch.Globals.wifi_mode == WIFI_MODE_NULL));
 }
 
-void LilyGoWatch::SetWakeupFlag()
+void IRAM_ATTR LilyGoWatch::SetWakeupFlag()
 {
-    Watch.PowerManage.SetWakeupFlag();
+    // ISR context: direct volatile writes only, no RTOS calls
+    Watch.PowerManage.ShouldWakeUp = true;
+    Watch.PowerManage.idle_time = 0;
     Watch.current_menu = MAIN_FACE;
     Watch.RedrawScreen = true;
 }

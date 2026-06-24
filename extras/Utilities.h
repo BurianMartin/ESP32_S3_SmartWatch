@@ -146,7 +146,7 @@ const int HIGHLIGHT_COLORS[] = {
     0x2D1FED}; // Blue
 
 #define MIN_FACE 0
-#define MAX_FACE 3
+#define MAX_FACE 4
 
 #define IR_FACE 0
 #define WIFI_FACE 1

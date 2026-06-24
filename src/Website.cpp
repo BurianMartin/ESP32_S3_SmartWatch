@@ -47,7 +47,7 @@ void LilyGoWatch::HandleBrightness()
 void LilyGoWatch::HandleSleepTimeoutSet()
 {
     if (Website.hasArg("value"))
-        PowerManage.sleep_timeout = Website.arg("value").toInt();
+        PowerManage.SetSleepTimeout(Website.arg("value").toInt());
 }
 
 void LilyGoWatch::HandleWebsiteStop()
@@ -234,8 +234,8 @@ void LilyGoWatch::SetupRoutes()
                { this->HandleWebsiteStop(); });
     Website.on("/wifi/networks", HTTP_GET, [this]()
                { this->HandleNetworkListGet(); });
-    Website.on("/wifi/status", HTTP_POST, [this]()
-               { this->HandleDateSet(); });
+    Website.on("/wifi/status", HTTP_GET, [this]()
+               { this->HandleWifiStatus(); });
     Website.on("/wifi/mode", HTTP_POST, [this]()
                { this->HandleWifiSetMode(); });
 
@@ -250,6 +250,15 @@ void LilyGoWatch::SetupRoutes()
 
     Website.on("/wifi/preferred/list", HTTP_GET, [this]()
                { this->HandlePreferredListGet(); });
+}
+
+void LilyGoWatch::HandleWifiStatus()
+{
+    String ip = (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString() : "";
+    String json = "{\"mode\":" + String(Globals.wifi_mode) +
+                  ",\"connected\":" + (WiFi.status() == WL_CONNECTED ? "true" : "false") +
+                  ",\"ip\":\"" + ip + "\"}";
+    Website.send(200, "application/json", json);
 }
 
 void LilyGoWatch::HandleColorSet()
@@ -309,7 +318,7 @@ bool LilyGoWatch::StartServer()
     if (Globals.wifi_mode == WIFI_MODE_NULL)
         return false;
 
-    if (!Globals.website_on && WiFi.getMode() == WIFI_MODE_AP || WiFi.getMode() == WIFI_MODE_APSTA)
+    if (!Globals.website_on && (WiFi.getMode() == WIFI_MODE_AP || WiFi.getMode() == WIFI_MODE_APSTA))
     {
         SetupRoutes();
         Website.begin();
@@ -372,5 +381,6 @@ void LilyGoWatch::HandleWebsite(void *parameter)
         xSemaphoreGive(Watch.Globals.wifi_mutex);
     }
     Watch.Website.handleClient();
+    Watch.Globals.website_task_handle = NULL;
     vTaskDelete(NULL);
 }

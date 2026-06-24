@@ -349,7 +349,7 @@ public:
     int16_t GetCurrentMenu()       const { return current_menu; }
 
 #ifdef ACCELEROMETER
-    void ReadAccelIrqStatus() { sensor.getIrqStatus(); sensor.readIrqStatus(); }
+    bool ReadAccelIrqStatus() { sensor.getIrqStatus(); bool t = sensor.isTilt(); sensor.readIrqStatus(); return t; }
 #endif
 
     WiFiDriver *getWifiDriverRef();

@@ -345,9 +345,9 @@ void LilyGoWatch::SetUpAccelerometer()
                              SensorBMA423::FEATURE_WAKEUP,
                          true);
 
+    // Only tilt and wakeup drive INT1 — any-motion and activity would cause
+    // spurious wakeups from pocket movement and are not routed to the pin.
     sensor.enableTiltIRQ();
     sensor.enableWakeupIRQ();
-    sensor.enableAnyNoMotionIRQ();
-    sensor.enableActivityIRQ();
     sensor.configInterrupt();
 }

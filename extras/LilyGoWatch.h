@@ -263,6 +263,8 @@ private:
 
     volatile bool RedrawScreen = true;
     bool SwipeEventsDisabled = false, Clear = false;
+    bool audio_initialized = false;
+    bool wifi_stack_initialized = false;
 
     Ticker WifiScanDelay, AlarmTicker, WebsiteUpdateTicker;
 
@@ -282,6 +284,8 @@ private:
     WebServer Website;
 
     void HandleSleepActions();
+    void EnsureAudioReady();
+    void EnsureWifiStackReady();
 
     void UpdateScreen();
 

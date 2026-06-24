@@ -110,6 +110,7 @@ void LilyGoWatch::PDM_Record(const char *song_name, uint32_t duration)
 
 void LilyGoWatch::Record(void *parameter)
 {
+    Watch.EnsureAudioReady();
     Serial.println("Recording");
     Watch.PDM_Record(DEFAULT_RECORD_FILENAME, 8);
     vTaskDelete(NULL);
@@ -117,6 +118,7 @@ void LilyGoWatch::Record(void *parameter)
 
 void LilyGoWatch::PlayRecordingFromStorage(void *parameter)
 {
+    Watch.EnsureAudioReady();
     if (xSemaphoreTake(Watch.AudioPlayback.Audio_Acces_Mutex, portMAX_DELAY))
     {
         Watch.AudioPlayback.out->SetGain(1);

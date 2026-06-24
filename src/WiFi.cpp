@@ -3,6 +3,7 @@
 
 void LilyGoWatch::StartWiFi()
 {
+    EnsureWifiStackReady();
     wifi_.Start();
 }
 

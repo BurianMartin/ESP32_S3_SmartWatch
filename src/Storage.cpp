@@ -99,7 +99,7 @@ void LilyGoWatch::SaveSettingsToJson()
     if (xSemaphoreTake(json_settings.Json_Acces_Mutex, portMAX_DELAY))
     {
         jsonDriver.setStdString("ap_ssid", wifi_.GetApSSID().c_str());
-        jsonDriver.setStdString("ap_pass", wifi_.GetApSSID().c_str());
+        jsonDriver.setStdString("ap_pass", wifi_.GetApPASS().c_str());
         jsonDriver.setStdString("time_format", json_settings.time_format);
         jsonDriver.setStdString("date_format", json_settings.date_format);
         jsonDriver.setStdString("date_language", json_settings.date_language);

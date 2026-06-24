@@ -110,7 +110,10 @@ bool LilyGoWatch::Init(Stream *stream)
 
     InitMicrophone();
 
-    InitWifi();
+    Serial.print("Init Wifi\n");
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    WiFi.onEvent(wifi_.Event);
+    Serial.print("Init Wifi Success\n");
 
     delay(INTRO_DELAY);
 
@@ -127,15 +130,6 @@ void LilyGoWatch::BeginTemp()
     temp_sensor_start();
 }
 
-void LilyGoWatch::InitWifi()
-{
-    Serial.print("Init Wifi\n");
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
-
-    WiFi.onEvent(wifi_.Event);
-    Serial.print("Init Wifi Success\n");
-}
 
 bool LilyGoWatch::PowerComponents()
 {
@@ -281,14 +275,14 @@ void LilyGoWatch::SetUpAccelerometer()
     sensor.reset();
     bool Result = SensorBMA423::begin(Wire, BMA_ADDR, BOARD_I2C_SDA, BOARD_I2C_SCL);
 
-    /*
-    sensor.configAccelerometer(
-        RANGE_2G,            // Smaller range → higher sensitivity per LSB
-        ODR_100HZ,           // Sampling rate; 100-200Hz is fine
-        BW_NORMAL_AVG4,      // Bandwidth/filtering; lower BW = less noise
-        PERF_CONTINUOUS_MODE // Keeps sensor fully active
-    );
-    */
+    if (!Result)
+    {
+        Serial.println("Failed to find BMA423 - check your wiring!");
+        return;
+    }
+
+    Serial.println("Initializing BMA423 succeeded");
+    setReampAxes(REMAP_BOTTOM_LAYER_TOP_RIGHT_CORNER);
 
     sensor.configAccelerometer(RANGE_2G);
 
@@ -307,13 +301,4 @@ void LilyGoWatch::SetUpAccelerometer()
     sensor.enableAnyNoMotionIRQ();
     sensor.enableActivityIRQ();
     sensor.configInterrupt();
-
-    if (!Result)
-        Serial.println("Failed to find BMA423 - check your wiring!");
-    else
-    {
-        Serial.println("Initializing BMA423 succeeded");
-        setReampAxes(REMAP_BOTTOM_LAYER_TOP_RIGHT_CORNER);
-        // setStepCounterWatermark(1);
-    }
 }

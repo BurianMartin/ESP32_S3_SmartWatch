@@ -1,8 +1,6 @@
 #include <LV_Helper.h>
 #include "LilyGoWatch.h"
 
-IRsend irsend(BOARD_IR_PIN);
-
 Ticker WatchfaceUpdateTicker;
 Ticker WebsiteHandleTicker;
 

@@ -72,6 +72,7 @@ struct GeneralData
     uint16_t visible_networks = 0;
     bool website_on = false;
     bool handle_website_events = false;
+    TaskHandle_t website_task_handle = NULL;
     std::vector<std::pair<std::string, std::string>> preferred_WiFis;
 };
 
@@ -143,9 +144,9 @@ public:
     bool IsAsleep() const;
 
     SemaphoreHandle_t Power_Acces_Mutex;
-    bool Asleep = false, ShouldWakeUp = false;
-    uint16_t idle_time = 0;
-    uint8_t double_touch = 0;
+    volatile bool Asleep = false, ShouldWakeUp = false;
+    volatile uint16_t idle_time = 0;
+    volatile uint8_t double_touch = 0;
     int sleep_timeout;
 };
 
@@ -249,7 +250,8 @@ private:
 
     uint8_t DisplayBrightness = 50;
 
-    bool RedrawScreen = true, SwipeEventsDisabled = false, Clear = false;
+    volatile bool RedrawScreen = true;
+    bool SwipeEventsDisabled = false, Clear = false;
 
     Ticker WifiScanDelay, AlarmTicker, WebsiteUpdateTicker;
 
@@ -359,12 +361,12 @@ public:
     const char *GetDateString();
 
     static void AlarmHandler();
-    static void SetWakeupFlag();
+    static void IRAM_ATTR SetWakeupFlag();
 
     static void InterruptTestFn();
 
     static void UpdateWatchScreen();
-    static void GeneralTouchHandler();
+    static void IRAM_ATTR GeneralTouchHandler();
     static void SwipeHandler(lv_event_t *e);
     static void ButtonHandler(lv_event_t *e);
     static void WaitWiFiScanFinish(void *parameter);
@@ -381,6 +383,7 @@ public:
     void HandleRoot();
     void SetupRoutes();
     void HandleWifiGet();
+    void HandleWifiStatus();
     void HandleDateSet();
     void HandleColorSet();
     void HandleBrightness();

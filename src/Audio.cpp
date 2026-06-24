@@ -124,18 +124,13 @@ void LilyGoWatch::PlayRecordingFromStorage(void *parameter)
         if (!Watch.AudioPlayback.file_fs->open(DEFAULT_RECORD_FILENAME))
         {
             Serial.println("Failed to open file!");
+            xSemaphoreGive(Watch.AudioPlayback.Audio_Acces_Mutex);
             vTaskDelete(NULL);
             return;
         }
 
         Watch.AudioPlayback.wav->begin(Watch.AudioPlayback.file_fs, Watch.AudioPlayback.out);
 
-        if (xSemaphoreTake(Watch.PowerManage.Power_Acces_Mutex, portMAX_DELAY))
-        {
-            Watch.PowerManage.idle_time = 0;
-            Watch.PowerManage.Asleep = true;
-            xSemaphoreGive(Watch.PowerManage.Power_Acces_Mutex);
-        }
         Serial.println("Running wav player!");
 
         while (Watch.AudioPlayback.wav->isRunning())
@@ -146,17 +141,12 @@ void LilyGoWatch::PlayRecordingFromStorage(void *parameter)
                 Watch.AudioPlayback.wav->stop();
                 break;
             }
+            Watch.PowerManage.ResetIdleTime();
             vTaskDelay(10);
         }
 
         Watch.AudioPlayback.wav->stop();
         xSemaphoreGive(Watch.AudioPlayback.Audio_Acces_Mutex);
-    }
-    if (xSemaphoreTake(Watch.PowerManage.Power_Acces_Mutex, portMAX_DELAY))
-    {
-        Watch.PowerManage.Asleep = false;
-        Watch.PowerManage.idle_time = 0;
-        xSemaphoreGive(Watch.PowerManage.Power_Acces_Mutex);
     }
 
     vTaskDelete(NULL);

@@ -21,18 +21,20 @@ void LilyGoWatch::Print(const char *message)
 void LilyGoWatch::PrintLn(const char *message)
 {
     if (stream)
-        stream->println();
+        stream->println(message);
 }
 
 void LilyGoWatch::ScanDevicePort(TwoWire *port, Stream *stream)
 {
-    uint8_t err, addr;
     int nDevices = 0;
     for (uint8_t addr = 1; addr < 127; addr++)
     {
-        Wire.beginTransmission(addr);
-        if (Wire.endTransmission() == 0)
-            Serial.printf("Device found at 0x%02X\n", addr);
+        port->beginTransmission(addr);
+        if (port->endTransmission() == 0)
+        {
+            if (stream) stream->printf("Device found at 0x%02X\n", addr);
+            nDevices++;
+        }
     }
 
     if (nDevices == 0)
@@ -45,7 +47,7 @@ const char *LilyGoWatch::GetTimeString()
 {
     RTC_DateTime dateTime = getDateTime();
 
-    char *time = new char[6];
+    static char time[6];
 
     if (json_settings.time_format == "12h")
     {
@@ -53,10 +55,10 @@ const char *LilyGoWatch::GetTimeString()
         if (hour12 == 0)
             hour12 = 12;
 
-        snprintf(time, 6, "%02d:%02d", hour12, dateTime.minute);
+        snprintf(time, sizeof(time), "%02d:%02d", hour12, dateTime.minute);
     }
     else
-        snprintf(time, 6, "%02d:%02d", dateTime.hour, dateTime.minute);
+        snprintf(time, sizeof(time), "%02d:%02d", dateTime.hour, dateTime.minute);
 
     return time;
 }
@@ -65,7 +67,7 @@ const char *LilyGoWatch::GetDateString()
 {
     RTC_DateTime dateTime = getDateTime();
 
-    char *date = new char[15];
+    static char date[15];
 
     const char **months;
 
@@ -77,11 +79,11 @@ const char *LilyGoWatch::GetDateString()
         months = en_months;
 
     if (json_settings.date_format == "DD-MM-YYYY")
-        snprintf(date, 15, "%02d %s %04d", dateTime.day, months[dateTime.month - 1], dateTime.year);
+        snprintf(date, sizeof(date), "%02d %s %04d", dateTime.day, months[dateTime.month - 1], dateTime.year);
     else if (json_settings.date_format == "YYYY-MM-DD")
-        snprintf(date, 15, "%04d %s %02d", dateTime.year, months[dateTime.month - 1], dateTime.day);
+        snprintf(date, sizeof(date), "%04d %s %02d", dateTime.year, months[dateTime.month - 1], dateTime.day);
     else
-        snprintf(date, 15, "%d %s %d", dateTime.day, months[dateTime.month - 1], dateTime.year);
+        snprintf(date, sizeof(date), "%d %s %d", dateTime.day, months[dateTime.month - 1], dateTime.year);
 
     return date;
 }

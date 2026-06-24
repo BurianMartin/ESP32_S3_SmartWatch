@@ -2,12 +2,13 @@
 
 void LilyGoWatch::PlayIrSignal(void *parameter)
 {
-    int ID = *((int *)parameter);
+    int ID = (int)(intptr_t)parameter;
 
     File file = LittleFS.open("/settings.json", "r");
     if (!file)
     {
         Serial.println("Failed to open settings.json");
+        vTaskDelete(NULL);
         return;
     }
 
@@ -20,17 +21,19 @@ void LilyGoWatch::PlayIrSignal(void *parameter)
     {
         Serial.print("JSON deserialization failed: ");
         Serial.println(error.c_str());
+        vTaskDelete(NULL);
         return;
     }
 
-    String manufacturer = doc["Inrfafed"]["manufacturer"] | "Unknown Manufacturer";
+    String manufacturer = doc["Infrared"]["manufacturer"] | "Unknown Manufacturer";
     Serial.println("Manufacturer: " + manufacturer);
 
-    JsonArray signals = doc["Inrfafed"]["signals"].as<JsonArray>();
+    JsonArray signals = doc["Infrared"]["signals"].as<JsonArray>();
 
-    if (ID < 0 || ID >= signals.size())
+    if (ID < 0 || ID >= (int)signals.size())
     {
         Serial.println("Invalid signal ID.");
+        vTaskDelete(NULL);
         return;
     }
 
@@ -48,4 +51,6 @@ void LilyGoWatch::PlayIrSignal(void *parameter)
         Watch.sendMitsubishi(sig, 64);
     else
         Serial.println("Unsupported manufacturer.");
+
+    vTaskDelete(NULL);
 }

@@ -2,7 +2,6 @@
 
 Power::Power()
 {
-    Power_Acces_Mutex = xSemaphoreCreateMutex();
     ShouldWakeUp = false;
     Asleep = false;
     idle_time = 0;

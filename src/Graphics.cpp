@@ -6,8 +6,8 @@ void LilyGoWatch::Update()
 
     UpdateScreen();
 
-    if (Watch.Globals.website_on && Watch.Globals.handle_website_events)
-        xTaskCreate(HandleWebsite, "WebsiteHandler", 4 * 1024, NULL, 12, NULL); // Serial.println("Handling Website");
+    if (Watch.Globals.website_on && Watch.Globals.handle_website_events && Watch.Globals.website_task_handle == NULL)
+        xTaskCreate(HandleWebsite, "WebsiteHandler", 4 * 1024, NULL, 12, &Watch.Globals.website_task_handle);
 
     lv_timer_handler();
 }
@@ -274,7 +274,10 @@ void LilyGoWatch::AddNetworkToList(const char *ssid, int signal_strength, bool i
     lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
-    const char *ssidToPrint = (strlen(ssid) > 14 ? (std::string(ssid, 11) + "...").c_str() : ssid);
+    std::string ssidTruncated;
+    if (strlen(ssid) > 14)
+        ssidTruncated = std::string(ssid, 11) + "...";
+    const char *ssidToPrint = (strlen(ssid) > 14 ? ssidTruncated.c_str() : ssid);
     lv_obj_t *ssid_label = lv_label_create(cont);
     lv_obj_set_style_text_color(ssid_label, lv_color_hex(0xFFFFFF), 0);
     lv_label_set_text(ssid_label, ssidToPrint);

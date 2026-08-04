@@ -85,29 +85,6 @@ void Power::GoToSleep(bool enterLightSleep)
     }
 }
 
-void Power::SetAlarm(uint8_t hours, uint8_t minutes, uint8_t seconds)
-{
-    RTC_DateTime dateTime = Watch.getDateTime();
-
-    RTC_Alarm alarm;
-    alarm.hour = hours;
-    alarm.minute = minutes;
-    alarm.second = seconds;
-
-    if ((hours < dateTime.hour) ||
-        (hours == dateTime.hour && minutes < dateTime.minute) ||
-        (hours == dateTime.hour && minutes == dateTime.minute && seconds <= dateTime.second))
-    {
-        alarm.week = (dateTime.week + 1) % 7;
-    }
-    else
-    {
-        alarm.week = dateTime.week;
-    }
-
-    // Předání alarmu někam dál (pokud bude potřeba)
-}
-
 bool Power::ShouldSleep()
 {
     if (xSemaphoreTake(Power_Acces_Mutex, portMAX_DELAY))

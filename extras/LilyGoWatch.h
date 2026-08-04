@@ -134,7 +134,6 @@ public:
     void HandleSleepActions(uint8_t setBrightness, bool enterLightSleep);
     void WakeUpFromSleep(uint8_t setBrightness);
     void GoToSleep(bool enterLightSleep);
-    void SetAlarm(uint8_t hours, uint8_t minutes, uint8_t seconds);
     void SetWakeupFlag();
     bool ShouldSleep();
 
@@ -380,7 +379,6 @@ public:
     void PrintLn(const char *message);
     void ScanDevicePort(TwoWire *port, Stream *stream);
     void SetDisplayBrightnessPercent(uint8_t value = -1);
-    void SetAlarm(uint8_t hours, uint8_t minutes, uint8_t seconds);
     void AddNetworkToList(const char *ssid, int signal_strength, bool is_secured);
 
     const char *GetTimeString();

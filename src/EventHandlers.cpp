@@ -353,7 +353,7 @@ void LilyGoWatch::scroll_end_event_ms(lv_event_t *e)
     int index = (y + 20) / 40;
     if (index < 0)
         index = 0;
-    else if (index > 71)
-        index = 71;
+    else if (index > 59)
+        index = 59;
     lv_obj_scroll_to_y(cont, index * 40, LV_ANIM_ON);
 }

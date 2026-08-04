@@ -295,7 +295,6 @@ private:
     void DrawIRWatchface();
     void DrawAlarmWatchface();
     void DrawSettingsFace();
-    void DrawFaceIndicator();
 
     void ShowNormalState();
     void ShowPlayingState();

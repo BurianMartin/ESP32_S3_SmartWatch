@@ -302,7 +302,7 @@ void LilyGoWatch::AddNetworkToList(const char *ssid, int signal_strength, bool i
     if (is_secured)
     {
         lv_obj_t *lock_label = lv_label_create(cont);
-        lv_label_set_text(lock_label, LV_SYMBOL_CLOSE);
+        lv_label_set_text(lock_label, LV_SYMBOL_EYE_CLOSE);
     }
 }
 

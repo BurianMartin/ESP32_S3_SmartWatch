@@ -279,7 +279,7 @@ private:
     AlarmWatchfaceElements AlarmElements;
     SettingsWatchfaceElements SettingsElements;
 
-    int16_t current_menu = MAIN_FACE;
+    volatile int16_t current_menu = MAIN_FACE;
 
     WebServer Website;
 

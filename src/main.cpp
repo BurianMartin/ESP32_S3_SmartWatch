@@ -37,8 +37,8 @@ void setup()
         bool ok = false;
         for (int i = 0; i < 3 && !ok; ++i)
             ok = Watch.Init(&Serial);
-        while (!ok)
-            ;
+        if (!ok)
+            esp_restart();
     }
 
     Watch.IRsend::begin();

@@ -75,17 +75,25 @@ void WiFiDriver::Stop()
 
 void WiFiDriver::AddPreferredNetwork(const std::string &ssid, const std::string &pass)
 {
-    data.preferred_WiFis.emplace_back(ssid, pass);
+    if (xSemaphoreTake(data.wifi_mutex, portMAX_DELAY))
+    {
+        data.preferred_WiFis.emplace_back(ssid, pass);
+        xSemaphoreGive(data.wifi_mutex);
+    }
 }
 
 void WiFiDriver::RemovePreferredNetwork(const std::string &ssid)
 {
-    data.preferred_WiFis.erase(std::remove_if(data.preferred_WiFis.begin(), data.preferred_WiFis.end(),
-                                              [&ssid](const std::pair<std::string, std::string> &pair)
-                                              {
-                                                  return pair.first == ssid;
-                                              }),
-                               data.preferred_WiFis.end());
+    if (xSemaphoreTake(data.wifi_mutex, portMAX_DELAY))
+    {
+        data.preferred_WiFis.erase(std::remove_if(data.preferred_WiFis.begin(), data.preferred_WiFis.end(),
+                                                  [&ssid](const std::pair<std::string, std::string> &pair)
+                                                  {
+                                                      return pair.first == ssid;
+                                                  }),
+                                   data.preferred_WiFis.end());
+        xSemaphoreGive(data.wifi_mutex);
+    }
 }
 
 void WiFiDriver::AccessPointTask(void *param)
@@ -164,18 +172,29 @@ void WiFiDriver::ScanTask(void *param)
             // Check if already connected
             bool connected = (WiFi.status() == WL_CONNECTED);
 
-            if (!connected && self->data.preferred_WiFis.size() > 0)
+            // Snapshot preferred_WiFis under the mutex rather than reading it directly
+            // for the rest of this block -- that block runs WiFi.begin() + a 10s wait
+            // per candidate network, and holding the mutex across that would block any
+            // other task (website add/remove/list) trying to touch the list meanwhile.
+            std::vector<std::pair<std::string, std::string>> preferred_snapshot;
+            if (xSemaphoreTake(self->data.wifi_mutex, portMAX_DELAY))
+            {
+                preferred_snapshot = self->data.preferred_WiFis;
+                xSemaphoreGive(self->data.wifi_mutex);
+            }
+
+            if (!connected && preferred_snapshot.size() > 0)
             {
                 // Find preferred networks in scan results
-                std::vector<std::pair<int, int8_t>> preferred_found; // <index in preferred_WiFi, RSSI>
+                std::vector<std::pair<int, int8_t>> preferred_found; // <index in preferred_snapshot, RSSI>
 
                 for (int i = 0; i < (int)self->data.scanResults.size(); i++)
                 {
                     const auto &network = self->data.scanResults[i];
 
-                    for (int j = 0; j < (int)self->data.preferred_WiFis.size(); ++j)
+                    for (int j = 0; j < (int)preferred_snapshot.size(); ++j)
                     {
-                        if (network.ssid == self->data.preferred_WiFis[j].first)
+                        if (network.ssid == preferred_snapshot[j].first)
                         {
                             preferred_found.push_back({j, network.signal_strength});
                             break;
@@ -195,10 +214,10 @@ void WiFiDriver::ScanTask(void *param)
 
                 for (const auto &p : preferred_found)
                 {
-                    Serial.printf("Trying to connect to %s with password '%s'\n", self->data.preferred_WiFis[p.first].first.c_str(), self->data.preferred_WiFis[p.first].second.c_str());
+                    Serial.printf("Trying to connect to %s with password '%s'\n", preferred_snapshot[p.first].first.c_str(), preferred_snapshot[p.first].second.c_str());
 
                     xEventGroupClearBits(self->data.wifi_events, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT);
-                    WiFi.begin(self->data.preferred_WiFis[p.first].first.c_str(), self->data.preferred_WiFis[p.first].second.c_str());
+                    WiFi.begin(preferred_snapshot[p.first].first.c_str(), preferred_snapshot[p.first].second.c_str());
 
                     EventBits_t bits = xEventGroupWaitBits(
                         Watch.getWifiDriverRef()->data.wifi_events,

@@ -91,20 +91,27 @@ void LilyGoWatch::HandlePreferredListGet()
 
     Serial.println("Sending preferred network list");
 
-    if (Watch.Globals.preferred_WiFis.empty())
+    std::vector<std::pair<std::string, std::string>> preferred_snapshot;
+    if (xSemaphoreTake(Watch.Globals.wifi_mutex, portMAX_DELAY))
+    {
+        preferred_snapshot = Watch.Globals.preferred_WiFis;
+        xSemaphoreGive(Watch.Globals.wifi_mutex);
+    }
+
+    if (preferred_snapshot.empty())
     {
         Website.send(200, "application/json", "[]");
         return;
     }
 
     String jsonResponse = "[";
-    for (size_t i = 0; i < Watch.Globals.preferred_WiFis.size(); i++)
+    for (size_t i = 0; i < preferred_snapshot.size(); i++)
     {
         if (i > 0)
             jsonResponse += ",";
 
         jsonResponse += "{";
-        jsonResponse += "\"ssid\":\"" + String(Watch.Globals.preferred_WiFis[i].first.c_str()) + "\"";
+        jsonResponse += "\"ssid\":\"" + String(preferred_snapshot[i].first.c_str()) + "\"";
         jsonResponse += "}";
     }
     jsonResponse += "]";

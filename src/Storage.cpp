@@ -63,13 +63,24 @@ void LilyGoWatch::LoadSettingsFromJson(bool printData)
 
         json_settings.gui_pref_color = GuiColor(jsonDriver.getInt("gui_color", 0));
 
-        Globals.preferred_WiFis.clear();
         xSemaphoreGive(json_settings.Json_Acces_Mutex);
     }
 
+    // Built locally and swapped in under wifi_mutex (Globals.preferred_WiFis' own lock,
+    // not Json_Acces_Mutex above -- that struct is unrelated) as a single assignment,
+    // rather than clearing then repopulating one Add_Prefered_WiFi() at a time: avoids
+    // a window where a concurrent reader (e.g. the website's preferred-list endpoint)
+    // could observe the list transiently empty mid-reload.
+    std::vector<std::pair<std::string, std::string>> loaded_wifis;
     JsonArray arr = jsonDriver.getArray("preferred_networks");
     for (JsonObject net : arr)
-        Add_Prefered_WiFi(net["ssid"] | "", net["password"] | "");
+        loaded_wifis.emplace_back(net["ssid"] | "", net["password"] | "");
+
+    if (xSemaphoreTake(Globals.wifi_mutex, portMAX_DELAY))
+    {
+        Globals.preferred_WiFis = loaded_wifis;
+        xSemaphoreGive(Globals.wifi_mutex);
+    }
 
     if (printData)
     {
@@ -81,12 +92,12 @@ void LilyGoWatch::LoadSettingsFromJson(bool printData)
         Serial.printf("  Sleep timeout:         %lu seconds\n", static_cast<unsigned long>(PowerManage.sleep_timeout));
         Serial.printf("  GUI preferred color:   %d\n", static_cast<int>(json_settings.gui_pref_color));
 
-        if (Globals.preferred_WiFis.empty())
+        if (loaded_wifis.empty())
             Serial.println("  Preferred networks:    none");
         else
         {
             Serial.println("  Preferred networks:");
-            for (const auto &p : Globals.preferred_WiFis)
+            for (const auto &p : loaded_wifis)
                 Serial.printf("    - SSID: %s, Pass: %s\n", p.first.c_str(), p.second.c_str());
         }
     }
@@ -108,9 +119,16 @@ void LilyGoWatch::SaveSettingsToJson()
         xSemaphoreGive(json_settings.Json_Acces_Mutex);
     }
 
+    std::vector<std::pair<std::string, std::string>> preferred_snapshot;
+    if (xSemaphoreTake(Globals.wifi_mutex, portMAX_DELAY))
+    {
+        preferred_snapshot = Globals.preferred_WiFis;
+        xSemaphoreGive(Globals.wifi_mutex);
+    }
+
     DynamicJsonDocument doc(1024);
     JsonArray arr = doc.to<JsonArray>();
-    for (auto &pair : Globals.preferred_WiFis)
+    for (auto &pair : preferred_snapshot)
     {
         JsonObject net = arr.createNestedObject();
         net["ssid"] = pair.first;

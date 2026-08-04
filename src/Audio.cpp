@@ -76,7 +76,7 @@ void LilyGoWatch::PDM_Record(const char *song_name, uint32_t duration)
     uint32_t data_size = MIC_I2S_SAMPLE_RATE * MIC_I2S_BITS_PER_SAMPLE * duration / 8;
 
     uint32_t counter = 0;
-    size_t bytes_written;
+    size_t bytes_written = 0;
     Serial.println("Recording started");
     int percentage = 0;
 
@@ -93,10 +93,21 @@ void LilyGoWatch::PDM_Record(const char *song_name, uint32_t duration)
         }
 
         if (!ReadMicrophone(buf, BUFFER_SIZE, &bytes_written))
-            Serial.println("readMicrophone() error");
+        {
+            // Don't splice a garbage/stale buffer into the file on a failed read --
+            // stop cleanly instead of silently corrupting the rest of the recording.
+            // The WAV header (written up front by CreateFileWAV) still declares the
+            // originally-requested duration, so a player may see a premature EOF;
+            // that's a smaller failure mode than audibly-corrupted samples mid-file.
+            Serial.println("readMicrophone() error, aborting recording early");
+            break;
+        }
 
         if (bytes_written != BUFFER_SIZE)
-            Serial.println("Bytes written error");
+        {
+            Serial.println("Bytes written error, aborting recording early");
+            break;
+        }
 
         audio_file.write(buf, BUFFER_SIZE);
 
